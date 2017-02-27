@@ -1,7 +1,7 @@
 # VNF Asterisk
 
 In this repository you'll end up finding a mish-mash of information around a
-project that @dougbtw and @leifmadsen are working on. For this project, we
+project that [@dougbtv](https://github.com/dougbtv) and [@leifmadsen](https://github.com/leifmadsen) are working on. For this project, we
 intend to build out an Asterisk-based VNF (virtual network function).
 
 This VNF will not be intended to be deployed to production, but rather provide
