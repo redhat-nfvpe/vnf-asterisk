@@ -31,7 +31,7 @@ git clone https://github.com/asterisk/asterisk.git
 cd asterisk
 git checkout 14.3.0
 git checkout -b 14.3.0
-./configure
+./configure --libdir=/usr/lib64
 make menuselect.makeopts
 ```
 
