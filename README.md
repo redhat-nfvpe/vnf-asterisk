@@ -26,5 +26,11 @@ information to Asterisk with very little pre-configuration.
 
 ![controlled_asterisk][controlled_asterisk]
 
+After we've got our basic topology created and controller built and working,
+we'll start the process of moving to a container based infrastructure.
+
+![container_asterisk][container_asterisk]
+
 [basic_topology]: images/basic_topology.png
 [controlled_asterisk]: images/controlled_asterisk.png
+[container_asterisk]: images/container_asterisk.png
