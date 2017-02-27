@@ -12,6 +12,19 @@ More information to follow as work progresses.
 
 # Topology
 
+Initially we'll start out with a very basic topology which will have nothing to
+do with any VNF work. We'll simply use this to gather up some data and basic
+configuration of Asterisk and SIPp to validate we can pass data through
+Asterisk and reflect it back.
+
 ![basic_topology][basic_topology]
 
+We'll then move into the first phase of development where our Asterisk machines
+will be instantiated and configured via a controller. We'll make use of the
+Asterisk REST Interface (ARI) and sorcery in order to push all configuration
+information to Asterisk with very little pre-configuration.
+
+![controlled_asterisk][controlled_asterisk]
+
 [basic_topology]: images/basic_topology.png
+[controlled_asterisk]: images/controlled_asterisk.png
