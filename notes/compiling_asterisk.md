@@ -13,7 +13,7 @@ systemctl start ntpd.service
 yum install epel-release vim-enhanced -y
 ```
 
-* Disable SElinux in `/etc/selinux/config
+* Disable SElinux in `/etc/selinux/config`
 * `systemctl reboot`
 
 ## Asterisk dependency install
