@@ -48,11 +48,6 @@ Content-Length: 0
 [routes]
 ]]>
 </send>
-  <nop>
-    <action>
-      <exec play_pcap_audio="/root/src/vnf-asterisk/resources/sippy_cup/test_scenario.pcap"/>
-    </action>
-  </nop>
   <send>
 <![CDATA[
 ACK [next_url] SIP/2.0
@@ -68,13 +63,6 @@ Content-Length: 0
 [routes]
 ]]>
 </send>
-  <nop>
-    <action>
-      <exec play_pcap_audio="/root/src/vnf-asterisk/resources/sippy_cup/test_scenario.pcap"/>
-    </action>
-  </nop>
-  <pause milliseconds="3000"/>
-  <pause milliseconds="1500"/>
   <recv request="BYE"/>
   <send>
 <![CDATA[
