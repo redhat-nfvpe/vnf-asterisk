@@ -1,0 +1,12 @@
+---
+source: 127.0.0.2:5061
+destination: 127.0.0.1:5060
+from_user: alice
+max_concurrent: 10
+calls_per_second: 5
+number_of_calls: 1
+steps:
+  - invite
+  - wait_for_answer
+  - ack_answer
+  - wait_for_hangup

@@ -6,13 +6,14 @@
 
 import requests
 import json
+import sys
 
-url = "http://localhost:8088/ari/asterisk/config/dynamic/res_pjsip/auth/alice"
+url = "http://localhost:8088/ari/asterisk/config/dynamic/res_pjsip/auth/%s" % sys.argv[1]
 
 config = {
     'fields': [
-        { 'attribute': 'username', 'value': 'alice' },
-        { 'attribute': 'password', 'value': 'supersecret' },
+        { 'attribute': 'username', 'value': sys.argv[1] },
+        { 'attribute': 'password', 'value': sys.argv[2] },
     ]
 }
 
