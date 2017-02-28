@@ -6,8 +6,9 @@
 
 import requests
 import json
+import sys
 
-url = "http://localhost:8088/ari/asterisk/config/dynamic/res_pjsip/auth/alice"
+url = "http://localhost:8088/ari/asterisk/config/dynamic/res_pjsip/auth/%s" % sys.argv[1]
 
 resp = requests.get(url, auth=('asterisk', 'asterisk'))
 
