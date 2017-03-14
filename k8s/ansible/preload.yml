@@ -1,0 +1,15 @@
+---
+
+- hosts: minions
+  vars_files:
+    - vars/all.yml
+  tasks:
+    - name: Get images
+      shell: >
+        docker images
+      register: docker_images
+    
+    - name: Download images
+      shell: >
+        docker pull dougbtv/asterisk14
+      when: "'asterisk14' not in '{{ docker_images.stdout }}'"
