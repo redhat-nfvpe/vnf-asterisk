@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: asterisk
+  labels:
+    app: asterisk
+spec:
+  containers:
+    - name: asterisk
+      image: dougbtv/asterisk14
+      imagePullPolicy: IfNotPresent
+  nodeSelector:
+    voiptype: tandem

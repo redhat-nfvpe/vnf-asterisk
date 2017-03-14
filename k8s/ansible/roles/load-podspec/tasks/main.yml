@@ -1,0 +1,6 @@
+---
+
+- name: Template pod spec
+  template: 
+    src: podspec.yml.j2
+    dest: /home/centos/asterisk.yml
