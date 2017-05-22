@@ -2,6 +2,13 @@
 
 Here's a series of instructions of how to get vnf-asterisk running under k8s.
 
+## Catalog
+
+* `preload.yml` : preload images on the boxen
+* `labels.yml` : assign labels to kube nodes
+* `load_podspec.yml` : load podspec(s) on to the master
+* 
+
 ## The playbooks
 
 First off, this assumes that you use Doug's [kube-centos-ansible](https://github.com/dougbtv/kube-centos-ansible) to spin up a cluster.
