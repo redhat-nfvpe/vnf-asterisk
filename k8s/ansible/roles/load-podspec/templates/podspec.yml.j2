@@ -47,6 +47,43 @@ spec:
 apiVersion: v1
 kind: Pod
 metadata:
+  name: controller
+  labels:
+    app: controller
+spec:
+  containers:
+    - name: controller
+      image: dougbtv/vnf-asterisk-controller
+      imagePullPolicy: IfNotPresent
+      command:
+        - nodemon
+        - vnf-asterisk-controller.js
+  # nodeSelector:
+  #   voiptype: tandem
+---
+apiVersion: v1
+kind: Service
+metadata:
+  creationTimestamp: null
+  labels:
+    service: controller
+  name: controller
+spec:
+  clusterIP: None
+  ports:
+  - name: "8001"
+    port: 8001
+    protocol: TCP
+    targetPort: 8001
+  selector:
+    app: controller
+status:
+  loadBalancer: {}
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
   name: nginx
   labels:
     app: nginx
