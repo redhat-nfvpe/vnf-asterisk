@@ -1,13 +1,223 @@
-apiVersion: v1
-kind: Pod
+apiVersion: extensions/v1beta1
+kind: Deployment
 metadata:
+  creationTimestamp: null
   name: asterisk
-  labels:
-    app: asterisk
 spec:
-  containers:
-    - name: asterisk
-      image: dougbtv/asterisk14
-      imagePullPolicy: IfNotPresent
-  nodeSelector:
-    voiptype: tandem
+  replicas: 1
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      name: asterisk
+      labels:
+        app: asterisk
+    spec:
+      containers:
+        - name: asterisk
+          image: dougbtv/asterisk14
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - mountPath: /etc/asterisk/
+              name: config
+      # nodeSelector:
+      #   voiptype: tandem
+      volumes:
+        - name: config
+          configMap:
+            name: asterisk-vanilla-config
+            items:
+              - key: http.conf
+                path: http.conf
+              - key: ari.conf
+                path: ari.conf
+              - key: rtp.conf
+                path: rtp.conf
+              - key: extensions.conf
+                path: extensions.conf
+              - key: pjsip.conf
+                path: pjsip.conf
+              - key: modules.conf
+                path: modules.conf
+              - key: asterisk.conf
+                path: asterisk.conf
+              # - ./docker/asterisk_entrypoint.sh:/entrypoint.sh
+              # - ./docker/sounds:/var/lib/asterisk/sounds/en/
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  creationTimestamp: null
+  name: nginx-config
+data:
+  nginx.conf: | 
+    server {
+      listen       80;
+      server_name  localhost;
+      location / {
+          root   /vac/www/dist;
+          index  index.html index.htm;
+      }
+      error_page   500 502 503 504  /50x.html;
+      location = /50x.html {
+          root   /usr/share/nginx/html;
+      }
+    }
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  creationTimestamp: null
+  name: asterisk-vanilla-config
+data:
+  asterisk.conf: |
+    [directories](!)
+    astetcdir => /etc/asterisk
+    astmoddir => /usr/lib64/asterisk/modules
+    astvarlibdir => /var/lib/asterisk
+    astdbdir => /var/lib/asterisk
+    astkeydir => /var/lib/asterisk
+    astdatadir => /var/lib/asterisk
+    astagidir => /var/lib/asterisk/agi-bin
+    astspooldir => /var/spool/asterisk
+    astrundir => /var/run/asterisk
+    astlogdir => /var/log/asterisk
+    astsbindir => /usr/sbin
+
+    [options]
+    documentation_language = en_US
+
+    ; Changing the following lines may compromise your security.
+    ;[files]
+    ;astctlpermissions = 0660
+    ;astctlowner = root
+    ;astctlgroup = apache
+    ;astctl = asterisk.ctl
+
+  modules.conf: |
+    ;
+    ; Asterisk configuration file
+    ;
+    ; Module Loader configuration file
+    ;
+
+    [modules]
+    autoload=yes
+    noload => res_parking.so
+    noload => func_periodic_hook.so
+    noload => pbx_ael.so
+    noload => chan_sip.so
+    noload => chan_skinny.so
+    noload => app_voicemail.so
+    noload => res_phoneprov.so
+    noload => res_pjsip_phoneprov_provider.so
+    noload => res_musiconhold.so
+  pjsip.conf: |
+    ; Basic UDP transport
+    ;
+    [transport-udp]
+    type=transport
+    protocol=udp    ;udp,tcp,tls,ws,wss
+    bind=0.0.0.0
+  extensions.conf: |
+    [inbound]
+
+    exten => _X.,1,Noop(Inbound call)
+    same =>      n,Answer() ; Wont' log a cdr without that, huh.
+    same =>      n,MixMonitor(test.ulaw)
+    same =>      n,stasis(inbound)
+    same =>      n,Hangup()
+
+  rtp.conf: |
+    [general]
+    rtpstart=10000
+    rtpend=10010
+
+  ari.conf: |
+    [general]
+    enabled = yes       ; When set to no, ARI support is disabled.
+
+    [asterisk]
+    type = user
+    password = asterisk
+
+  http.conf: |
+    ;
+    ; Asterisk Builtin mini-HTTP server
+    ;
+    ;
+    ; Note about Asterisk documentation:
+    ;   If Asterisk was installed from a tarball, then the HTML documentation should
+    ;   be installed in the static-http/docs directory which is
+    ;   (/var/lib/asterisk/static-http/docs) on linux by default.  If the Asterisk
+    ;   HTTP server is enabled in this file by setting the "enabled", "bindaddr",
+    ;   and "bindport" options, then you should be able to view the documentation
+    ;   remotely by browsing to:
+    ;       http://<server_ip>:<bindport>/static/docs/index.html
+    ;
+    [general]
+    ;
+    ; The name of the server, advertised in both the Server field in HTTP
+    ; response message headers, as well as the <address /> element in certain HTTP
+    ; response message bodies. If not furnished here, "Asterisk/{version}" will be
+    ; used as a default value for the Server header field and the <address />
+    ; element. Setting this property to a blank value will result in the omission
+    ; of the Server header field from HTTP response message headers and the
+    ; <address /> element from HTTP response message bodies.
+    ;
+    servername=Asterisk
+    ;
+    ; Whether HTTP/HTTPS interface is enabled or not.  Default is no.
+    ; This also affects manager/rawman/mxml access (see manager.conf)
+    ;
+    enabled=yes
+    ;
+    ; Address to bind to, both for HTTP and HTTPS. You MUST specify
+    ; a bindaddr in order for the HTTP server to run. There is no
+    ; default value.
+    ;
+    bindaddr=0.0.0.0
+  extensions.ael: |
+    [fakeout]
+
+  entrypoint.sh: |
+    #!/bin/bash
+
+    # Check for target interface
+    echo "TARGET_INTERFACE: $TARGET_INTERFACE"
+    if [ -z "$TARGET_INTERFACE" ]; then
+      echo "You must specify the TARGET_INTERFACE environment variable."
+      exit 1
+    fi
+
+    # Check for etcd hostname
+    if [ -z "$ETCD_HOSTNAME" ]; then
+      echo "You must specify the ETCD_HOSTNAME environment variable."
+      exit 1
+    fi
+
+    # Get the IP address for the interface
+    ip_address=$(ip a | grep -Pi -A3 "^\d.+$TARGET_INTERFACE" | grep "inet " | awk '{print $2}' | perl -p -e 's|^(.+)/.+$|$1|')
+
+    # Generate a UUID name for this box.
+    UUID=$(cat /proc/sys/kernel/random/uuid)
+
+    # Now announce that IP address to etcd
+    echo "Announcing IP location to etcd: $ip_address"
+    curl -s -L -X PUT http://$ETCD_HOSTNAME:2379/v2/keys/asterisk/$UUID/ip -d value="$ip_address"
+
+    if [ ! -z "$ADVERTISE_NICKNAME" ]; then
+      echo "Announcing nickname to etcd: $ADVERTISE_NICKNAME"
+      curl -s -L -X PUT http://$ETCD_HOSTNAME:2379/v2/keys/asterisk/$UUID/nickname -d value="$ADVERTISE_NICKNAME"
+    fi
+
+---
+
+
+
+
+
+
+
+

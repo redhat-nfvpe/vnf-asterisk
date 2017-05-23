@@ -11,5 +11,8 @@
     
     - name: Download images
       shell: >
-        docker pull dougbtv/asterisk14
-      # when: "'asterisk14' not in '{{ docker_images.stdout }}'"
+        docker pull "{{ item }}"
+      when: "'{{ item }}' not in '{{ docker_images.stdout }}'"
+      with_items:
+        - dougbtv/vnf-asterisk-controller
+        - dougbtv/asterisk14
