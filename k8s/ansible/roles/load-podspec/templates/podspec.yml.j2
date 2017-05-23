@@ -92,6 +92,17 @@ spec:
     - name: nginx
       image: dougbtv/vnf-asterisk-nginx
       imagePullPolicy: IfNotPresent
+      volumeMounts:
+        - mountPath: /vac/www/dist/config
+          name: config
+  volumes:
+    - name: config
+      configMap:
+        name: controller-ui-config
+        items:
+          - key: config.js
+            path: config.js
+
   # nodeSelector:
   #   voiptype: tandem
 ---
@@ -133,7 +144,19 @@ data:
           root   /usr/share/nginx/html;
       }
     }
-
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  creationTimestamp: null
+  name: controller-ui-config
+data:
+  config.js: |
+    var env = {
+      environment_name: "local_dev",
+      api_url: 'http://localhost:8001',
+      foo: 'bar',
+    };
 ---
 apiVersion: v1
 kind: ConfigMap
