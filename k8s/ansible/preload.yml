@@ -16,3 +16,4 @@
       with_items:
         - dougbtv/vnf-asterisk-controller
         - dougbtv/asterisk14
+        - dougbtv/vnf-asterisk-nginx

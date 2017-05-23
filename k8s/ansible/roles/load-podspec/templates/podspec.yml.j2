@@ -45,6 +45,39 @@ spec:
               # - ./docker/sounds:/var/lib/asterisk/sounds/en/
 ---
 apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx
+  labels:
+    app: nginx
+spec:
+  containers:
+    - name: nginx
+      image: dougbtv/vnf-asterisk-nginx
+      imagePullPolicy: IfNotPresent
+  # nodeSelector:
+  #   voiptype: tandem
+---
+apiVersion: v1
+kind: Service
+metadata:
+  creationTimestamp: null
+  labels:
+    service: nginx
+  name: nginx
+spec:
+  clusterIP: None
+  ports:
+  - name: "80"
+    port: 80
+    protocol: TCP
+    targetPort: 80
+  selector:
+    app: nginx
+status:
+  loadBalancer: {}
+---
+apiVersion: v1
 kind: ConfigMap
 metadata:
   creationTimestamp: null
