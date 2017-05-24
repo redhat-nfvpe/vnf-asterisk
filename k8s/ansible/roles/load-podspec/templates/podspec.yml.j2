@@ -1,3 +1,14 @@
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  creationTimestamp: null
+  name: env-config
+data:
+  ADVERTISE_NICKNAME: "asterisk1"
+  TARGET_INTERFACE: "eth0"
+  ETCD_HOSTNAME: "etcd-client"
+---
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
@@ -20,6 +31,13 @@ spec:
           volumeMounts:
             - mountPath: /etc/asterisk/
               name: config
+          envFrom:
+          - configMapRef:
+             name: env-config
+          command:
+            - "/bin/bash"
+            - "-c"
+            - "cat /etc/asterisk/entrypoint.sh | /bin/bash"
       # nodeSelector:
       #   voiptype: tandem
       volumes:
@@ -41,6 +59,8 @@ spec:
                 path: modules.conf
               - key: asterisk.conf
                 path: asterisk.conf
+              - key: entrypoint.sh
+                path: entrypoint.sh
               # - ./docker/asterisk_entrypoint.sh:/entrypoint.sh
               # - ./docker/sounds:/var/lib/asterisk/sounds/en/
 ---
@@ -276,6 +296,7 @@ data:
 
   entrypoint.sh: |
     #!/bin/bash
+    set -x
 
     # Check for target interface
     echo "TARGET_INTERFACE: $TARGET_INTERFACE"
@@ -304,6 +325,8 @@ data:
       echo "Announcing nickname to etcd: $ADVERTISE_NICKNAME"
       curl -s -L -X PUT http://$ETCD_HOSTNAME:2379/v2/keys/asterisk/$UUID/nickname -d value="$ADVERTISE_NICKNAME"
     fi
+
+    asterisk -f
 
 # ------------------------------------------------------------------------------
 # -                                                                       etcd -
