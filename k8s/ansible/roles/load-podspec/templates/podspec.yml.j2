@@ -5,7 +5,6 @@ metadata:
   creationTimestamp: null
   name: env-config
 data:
-  ADVERTISE_NICKNAME: "asterisk1"
   TARGET_INTERFACE: "eth0"
   ETCD_HOSTNAME: "etcd-client"
 ---
@@ -59,6 +58,8 @@ spec:
                 path: modules.conf
               - key: asterisk.conf
                 path: asterisk.conf
+              - key: hep.conf
+                path: hep.conf
               - key: entrypoint.sh
                 path: entrypoint.sh
               # - ./docker/asterisk_entrypoint.sh:/entrypoint.sh
@@ -208,6 +209,27 @@ data:
     ;astctlgroup = apache
     ;astctl = asterisk.ctl
 
+  hep.conf: |
+    ;
+    ; res_hep Module configuration for Asterisk
+    ;
+
+    ; All settings are currently set in the general section.
+    [general]
+    enabled = yes                      ; Enable/disable forwarding of packets to a
+                                       ; HEP server. Default is "yes".
+    capture_address = kamailio:9061    ; The address of the HEP capture server.
+    ; capture_password = foo             ; If specified, the authorization passsword
+                                       ; for the HEP server. If not specified, no
+                                       ; authorization password will be sent.
+    capture_id = HEP_CAPTURE_ID        ; A unique integer identifier for this
+                                       ; server. This ID will be embedded sent
+                                       ; with each packet from this server.
+    uuid_type = call-id                ; Specify the preferred source for the Homer
+                                       ; correlation UUID. Valid options are:
+                                       ; - 'call-id' for the PJSIP SIP Call-ID
+                                       ; - 'channel' for the Asterisk channel name
+
   modules.conf: |
     ;
     ; Asterisk configuration file
@@ -321,10 +343,20 @@ data:
     echo "Announcing IP location to etcd: $ip_address"
     curl -s -L -X PUT http://$ETCD_HOSTNAME:2379/v2/keys/asterisk/$UUID/ip -d value="$ip_address"
 
+    if [ -z "$ADVERTISE_NICKNAME" ]; then
+      # Generate one.
+      ADVERTISE_NICKNAME=$(curl --connect-timeout 3 -s https://frightanic.com/goodies_content/docker-names.php)
+    fi
+
     if [ ! -z "$ADVERTISE_NICKNAME" ]; then
       echo "Announcing nickname to etcd: $ADVERTISE_NICKNAME"
       curl -s -L -X PUT http://$ETCD_HOSTNAME:2379/v2/keys/asterisk/$UUID/nickname -d value="$ADVERTISE_NICKNAME"
     fi
+
+    # Update hep.conf 
+    random_hep_id=$RANDOM
+    sed -i -e "s/HEP_CAPTURE_ID/$random_hep_id/" /etc/asterisk/hep.conf
+    echo "Random HEP ID: $random_hep_id"
 
     asterisk -f
 

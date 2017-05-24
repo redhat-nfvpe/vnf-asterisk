@@ -14,6 +14,13 @@
         docker pull "{{ item }}"
       when: "'{{ item }}' not in '{{ docker_images.stdout }}'"
       with_items:
+        # VNF Asterisk stuff.
         - dougbtv/vnf-asterisk-controller
         - dougbtv/asterisk14
         - dougbtv/vnf-asterisk-nginx
+        # Homer Stuff
+        - dougbtv/homer-bootstrap-data
+        - dougbtv/homer-cron
+        - dougbtv/homer-kamailio
+        - mysql:5.6
+        - dougbtv/homer-webapp
