@@ -37,6 +37,12 @@ spec:
             - "/bin/bash"
             - "-c"
             - "cat /etc/asterisk/entrypoint.sh | /bin/bash"
+        - name: captagent
+          image: dougbtv/homer-captagent
+          imagePullPolicy: IfNotPresent
+          args:
+            - "--capturehost"
+            - "kamailio"
       # nodeSelector:
       #   voiptype: tandem
       volumes:
