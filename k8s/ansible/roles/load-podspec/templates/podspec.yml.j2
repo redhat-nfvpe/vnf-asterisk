@@ -54,6 +54,8 @@ spec:
                 path: extensions.conf
               - key: pjsip.conf
                 path: pjsip.conf
+              - key: cdr.conf
+                path: cdr.conf
               - key: modules.conf
                 path: modules.conf
               - key: asterisk.conf
@@ -64,6 +66,24 @@ spec:
                 path: entrypoint.sh
               # - ./docker/asterisk_entrypoint.sh:/entrypoint.sh
               # - ./docker/sounds:/var/lib/asterisk/sounds/en/
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  creationTimestamp: null
+  name: controller-config
+data:
+  config.json: |
+    {
+      "SERVER_PORT": "8001",
+      "CONFIG_NAME": "kubernetes",
+      "etcd_host": "etcd-client",
+      "etcd_port": "2379",
+      "sourcery_port": "8088",
+      "temp_path": "/tmp",
+      "log_stdout": false,
+      "pretty_log": true
+    }
 ---
 apiVersion: v1
 kind: Pod
@@ -79,6 +99,16 @@ spec:
       command:
         - nodemon
         - vnf-asterisk-controller.js
+      volumeMounts:
+        - mountPath: /vac/includes
+          name: config
+  volumes:
+    - name: config
+      configMap:
+        name: controller-config
+        items:
+          - key: config.json
+            path: config.json
   # nodeSelector:
   #   voiptype: tandem
 ---
@@ -90,7 +120,7 @@ metadata:
     service: controller
   name: controller
 spec:
-  clusterIP: None
+  # clusterIP: None
   ports:
   - name: "8001"
     port: 8001
@@ -105,12 +135,12 @@ status:
 apiVersion: v1
 kind: Pod
 metadata:
-  name: nginx
+  name: vnfui
   labels:
-    app: nginx
+    app: vnfui
 spec:
   containers:
-    - name: nginx
+    - name: vnfui
       image: dougbtv/vnf-asterisk-nginx
       imagePullPolicy: IfNotPresent
       volumeMounts:
@@ -132,17 +162,17 @@ kind: Service
 metadata:
   creationTimestamp: null
   labels:
-    service: nginx
-  name: nginx
+    service: vnfui
+  name: vnfui
 spec:
-  clusterIP: None
+  # clusterIP: None
   ports:
   - name: "80"
     port: 80
     protocol: TCP
     targetPort: 80
   selector:
-    app: nginx
+    app: vnfui
 status:
   loadBalancer: {}
 ---
@@ -255,6 +285,15 @@ data:
     type=transport
     protocol=udp    ;udp,tcp,tls,ws,wss
     bind=0.0.0.0
+  cdr.conf: |
+    [general]
+
+    [csv]
+    usegmtime=yes    ; log date/time in GMT.  Default is "no"
+    loguniqueid=yes  ; log uniqueid.  Default is "no"
+    loguserfield=yes ; log user field.  Default is "no"
+    accountlogs=yes  ; create separate log file for each account code. Default is "yes"
+
   extensions.conf: |
     [inbound]
 
@@ -332,6 +371,34 @@ data:
       echo "You must specify the ETCD_HOSTNAME environment variable."
       exit 1
     fi
+
+    # Check to see if etcd is alive.
+    # Wait for etcd in a loop for 5 retries
+    wait_seconds="3"
+    retries="0"
+    while [ $retries -lt 5 ]; do
+
+      retries=$[$retries+1]
+      
+      curl -s -L --connect-timeout $wait_seconds http://$ETCD_HOSTNAME:2379/version
+      status=$?
+
+      # Check if it errored out.
+      if [ $status -ne 0 ]; then
+        echo "WARNING: Etcd not responding (exit: $status / retries: $retries)"
+      else
+        break
+      fi
+    
+    done
+
+    if [ $status -ne 0 ]; then
+      echo "ERROR: Connection to etcd failed after some retries."
+      exit 1
+    else
+      echo "Connected to ETCD @ $ETCD_HOSTNAME"
+    fi
+
 
     # Get the IP address for the interface
     ip_address=$(ip a | grep -Pi -A3 "^\d.+$TARGET_INTERFACE" | grep "inet " | awk '{print $2}' | perl -p -e 's|^(.+)/.+$|$1|')
@@ -554,10 +621,4 @@ spec:
     targetPort: 2380
   selector:
     etcd_node: etcd2
-
-
-
-
-
-
 
