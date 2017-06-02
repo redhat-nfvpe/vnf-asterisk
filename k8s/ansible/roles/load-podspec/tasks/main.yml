@@ -1,0 +1,13 @@
+---
+
+- name: Template pod spec
+  template: 
+    src: podspec.yml.j2
+    dest: /home/centos/asterisk.yml
+
+# curl https://raw.githubusercontent.com/coreos/etcd/master/hack/kubernetes-deploy/etcd.yml > etcd.yaml
+- name: Get etcd pod spec
+  get_url:
+    url: https://raw.githubusercontent.com/coreos/etcd/master/hack/kubernetes-deploy/etcd.yml
+    dest: /home/centos/etcd.yml
+

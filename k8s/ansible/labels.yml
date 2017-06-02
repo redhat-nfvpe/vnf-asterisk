@@ -1,0 +1,15 @@
+---
+
+- hosts: master
+  vars_files:
+    - vars/all.yml
+  tasks:
+    - name: Get labels 
+      shell: >
+        kubectl get nodes --show-labels
+      register: node_labels
+
+    - name: Apply labels
+      shell: >
+        kubectl label nodes kube-minion-2 voiptype=tandem
+      when: "'tandem' not in '{{ node_labels.stdout }}'"

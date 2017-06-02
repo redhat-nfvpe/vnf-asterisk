@@ -1,0 +1,387 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  creationTimestamp: null
+  name: homer-env-config
+data:
+  # A lot of these could be secrets, -Doug
+  TZ: '"Etc/UTC"'
+  DB_USER: homer_user
+  DB_PASS: homer_password
+  USE_REMOTE_MYSQL: "false"
+  DB_HOST: mysql
+  DB_PORT: "3306"
+  MYSQL_ROOT_PASSWORD: secret
+  KAMAILIO_HEP_PORT: "9060"
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  creationTimestamp: null
+  name: bootstrap
+spec:
+  template:
+    metadata:
+      creationTimestamp: null
+      name: bootstrap
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: bootstrap-mysql
+        command:
+          - /bootstrap.sh
+        envFrom:
+          - configMapRef:
+             name: homer-env-config
+        image: dougbtv/homer-bootstrap-data
+        resources: {}
+        volumeMounts:
+        - mountPath: /homer-semaphore/
+          name: homer-data-semaphore
+      volumes:
+      - name: homer-data-semaphore
+        persistentVolumeClaim:
+          claimName: homer-data-semaphore
+status: {}
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  name: cron
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        service: cron
+    spec:
+      containers:
+      - name: homer-cron
+        envFrom:
+          - configMapRef:
+              name: homer-env-config
+        image: dougbtv/homer-cron
+        resources: {}
+        volumeMounts:
+        - mountPath: /homer-semaphore/
+          name: homer-data-semaphore
+      restartPolicy: Always
+      volumes:
+      - name: homer-data-semaphore
+        persistentVolumeClaim:
+          claimName: homer-data-semaphore
+status: {}
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  name: kamailio
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        service: kamailio
+    spec:
+      containers:
+      - name: homer-kamailio
+        envFrom:
+          - configMapRef:
+              name: homer-env-config
+        image: dougbtv/homer-kamailio
+        ports:
+        - containerPort: 9060
+          protocol: UDP
+        resources: {}
+        volumeMounts:
+        - mountPath: /homer-semaphore/
+          name: homer-data-semaphore
+      restartPolicy: Always
+      volumes:
+      - name: homer-data-semaphore
+        persistentVolumeClaim:
+          claimName: homer-data-semaphore
+status: {}
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  name: mysql
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        service: mysql
+    spec:
+      containers:
+      - command:
+          - /entrypoint.sh 
+        args:
+          - mysqld
+        envFrom:
+          - configMapRef:
+              name: homer-env-config
+        image: mysql:5.6
+        name: mysql
+        resources: {}
+        volumeMounts:
+        - mountPath: /homer-semaphore/
+          name: homer-data-semaphore
+        - mountPath: /var/lib/mysql
+          name: homer-data-mysql
+      restartPolicy: Always
+      volumes:
+      - name: homer-data-semaphore
+        persistentVolumeClaim:
+          claimName: homer-data-semaphore
+      - name: homer-data-mysql
+        persistentVolumeClaim:
+          claimName: homer-data-mysql
+status: {}
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  name: webapp
+  annotations:
+    # ---------------------------------------------------------------
+    # Thought this could work-around bad perms in dashboard volume.
+    # ---------------------------------------------------------------
+    # pod.alpha.kubernetes.io/init-containers: | 
+    #   [{
+    #       "name": "webapp-init",
+    #       "image": "busybox",
+    #       "imagePullPolicy": "IfNotPresent",
+    #       "command": ["sh", "-c", "chown -R 33:33 /var/www/html/store/dashboard/"],
+    #       "volumeMounts": [
+    #           {
+    #             "name": "homer-data-dashboard",
+    #             "mountPath": "/var/www/html/store/dashboard/"
+    #           }
+    #       ]
+    #   }]
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        service: webapp
+    spec:
+      containers:
+      - name: homer-webapp
+        envFrom:
+          - configMapRef:
+             name: homer-env-config
+        image: dougbtv/homer-webapp
+        ports:
+        - containerPort: 80
+        resources: {}
+        volumeMounts:
+        - mountPath: /homer-semaphore/
+          name: homer-data-semaphore
+        # - mountPath: /var/www/html/store/dashboard/
+        #   name: homer-data-dashboard
+      restartPolicy: Always
+      volumes:
+      - name: homer-data-semaphore
+        persistentVolumeClaim:
+          claimName: homer-data-semaphore
+      # - name: homer-data-dashboard
+      #   persistentVolumeClaim:
+      #     claimName: homer-data-dashboard
+status: {}
+---
+# ------------------------------------------------------------------------------------------------------------
+# -- Alpha feature!
+# ------------------------------------------------------------------------------------------------------------
+# k8s cron docs: http://tinyurl.com/kube-cron
+# Have to enable it in the api etc. So...
+# [centos@kube-master k8s]$ sudo diff /etc/kubernetes/manifests/kube-apiserver.yaml /root/kube-apiserver.yaml
+# 36d35
+# <     - --runtime-config=batch/v2alpha1=true
+# ------------------------------------------------------------------------------------------------------------
+# The api server will automatically apply this after changing that manifest.
+# ------------------------------------------------------------------------------------------------------------
+# NOTE: Since this also needs to run on first instantiation to "prime" all the tables...
+# You'll also need to enable a one-shot job to also do the same thing.
+# ------------------------------------------------------------------------------------------------------------
+# apiVersion: batch/v2alpha1
+# kind: CronJob
+# metadata:
+#   name: homer-cron
+# spec:
+#   schedule: "30 3 * * *"
+#   jobTemplate:
+#     spec:
+#       template:
+#         spec:
+#           containers:
+#             - name: homer-cron
+#               envFrom:
+#                 - configMapRef:
+#                     name: homer-env-config
+#               image: dougbtv/homer-k8s-cron
+#               command: 
+#                 - "/run.sh"
+#               resources: {}
+#               volumeMounts:
+#                 - mountPath: /homer-semaphore/
+#                   name: homer-data-semaphore
+#           restartPolicy: OnFailure
+#           volumes:
+#             - name: homer-data-semaphore
+#               persistentVolumeClaim:
+#                 claimName: homer-data-semaphore
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  creationTimestamp: null
+  name: homer-data-dashboard
+  # This storage class is a work around for now...
+  # see: https://github.com/kubernetes/kubernetes/issues/43929
+spec:
+  storageClassName: storage
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Mi
+status: {}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  creationTimestamp: null
+  name: homer-data-mysql
+spec:
+  storageClassName: storage
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 250Mi
+status: {}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  creationTimestamp: null
+  name: homer-data-semaphore
+spec:
+  storageClassName: storage
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Mi
+status: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  creationTimestamp: null
+  labels:
+    service: bootstrap
+  name: bootstrap
+spec:
+  clusterIP: None
+  ports:
+  - name: headless
+    port: 55555
+    targetPort: 0
+  selector:
+    service: bootstrap
+status:
+  loadBalancer: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  creationTimestamp: null
+  labels:
+    service: cron
+  name: cron
+spec:
+  clusterIP: None
+  ports:
+  - name: headless
+    port: 55555
+    targetPort: 0
+  selector:
+    service: cron
+status:
+  loadBalancer: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  creationTimestamp: null
+  labels:
+    service: kamailio
+  name: kamailio
+spec:
+  ports:
+  - name: "9060"
+    port: 9060
+    protocol: UDP
+    targetPort: 9060
+  selector:
+    service: kamailio
+status:
+  loadBalancer: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  creationTimestamp: null
+  labels:
+    service: mysql
+  name: mysql
+spec:
+  clusterIP: None
+  ports:
+  - name: "3306"
+    port: 3306
+    protocol: TCP
+    targetPort: 3306
+  selector:
+    service: mysql
+status:
+  loadBalancer: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  creationTimestamp: null
+  labels:
+    service: webapp
+  name: webapp
+spec:
+  ports:
+  - name: "8080"
+    port: 8080
+    targetPort: 80
+  selector:
+    service: webapp
+status:
+  loadBalancer: {}
+---

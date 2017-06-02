@@ -1,5 +1,9 @@
 # VNF Asterisk
 
+![nfvpe-bdage](https://img.shields.io/badge/nfvpe-approved-green.svg) ![apache-badge](https://img.shields.io/badge/license-Apache%20v2-blue.svg)
+
+![logo][logo]
+
 In this repository you'll end up finding a mish-mash of information around a
 project that [@dougbtv](https://github.com/dougbtv) and [@leifmadsen](https://github.com/leifmadsen) are working on. For this project, we
 intend to build out an Asterisk-based VNF (virtual network function).
@@ -44,9 +48,16 @@ look a lot more like a true VNF. Components will be broken into specific
 components and deployed via pods, and different networking interfaces will be
 added based on what components need to communicate among each other.
 
+## Running in Kubernetes
+
+Take a gander at the `./k8s` folder to find an Ansible playbook which will (primarily) template the YAML resource definitions (pod specs, etc) for vnf-asterisk in Kubernetes. Later on, we'll template these with Helm.
+
+Want some help running them? We'll add more detailed documents here as time goes on, but for now I recommend checking out [dougbtv's blog article](http://dougbtv.com/nfvpe/2017/05/30/vnf-asterisk-kubernetes/) on the topic.
+
 ![vnf_overview][vnf_overview]
 
 [basic_topology]: images/basic_topology.png
 [controlled_asterisk]: images/controlled_asterisk.png
 [container_asterisk]: images/container_asterisk.png
 [vnf_overview]: images/vnf_overview.png
+[logo]: images/vnf-asterisk-controller-logo.png
