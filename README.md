@@ -19,9 +19,9 @@ More information to follow as work progresses.
 @dougbtv and @leifmadsen did a presentation of this material in a workshop at AstriCon 2017. The slides are available here:
 
 * Part 1: http://tinyurl.com/vnf-asterisk-1
-* Part 2: http://tinyurl.com/vnf-asterisk-1
-* Part 3: http://tinyurl.com/vnf-asterisk-1
-* Part 4: http://tinyurl.com/vnf-asterisk-1
+* Part 2: http://tinyurl.com/vnf-asterisk-2
+* Part 3: http://tinyurl.com/vnf-asterisk-3
+* Part 4: http://tinyurl.com/vnf-asterisk-4
 
 # Topology
 
