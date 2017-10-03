@@ -14,6 +14,15 @@ one. You can think of this as more of a demo or research project.
 
 More information to follow as work progresses.
 
+# Presentation material
+
+@dougbtv and @leifmadsen did a presentation of this material in a workshop at AstriCon 2017. The slides are available here:
+
+* Part 1: http://tinyurl.com/vnf-asterisk-1
+* Part 2: http://tinyurl.com/vnf-asterisk-1
+* Part 3: http://tinyurl.com/vnf-asterisk-1
+* Part 4: http://tinyurl.com/vnf-asterisk-1
+
 # Topology
 
 ## Basic topology
