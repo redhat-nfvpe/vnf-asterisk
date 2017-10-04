@@ -210,9 +210,8 @@ metadata:
 data:
   config.js: |
     var env = {
-      environment_name: "local_dev",
-      api_url: 'http://localhost:8001',
-      foo: 'bar',
+      environment_name: "kubernetes_config",
+      api_url: 'http://' + window.location.hostname + ':8001',
     };
 ---
 apiVersion: v1
