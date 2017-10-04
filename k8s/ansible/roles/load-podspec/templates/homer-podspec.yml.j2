@@ -29,7 +29,9 @@ spec:
       containers:
       - name: bootstrap-mysql
         command:
-          - /bootstrap.sh
+          - "/bin/bash"
+          - "-c"
+          - "./bootstrap.sh && echo Bootstrapped @ $(date) > /homer-semaphore/.bootstrapped"
         envFrom:
           - configMapRef:
              name: homer-env-config
@@ -59,6 +61,13 @@ spec:
       labels:
         service: cron
     spec:
+      initContainers:
+      - name: init-cron
+        image: centos:centos7
+        command: ['/bin/bash', '-c', 'if [[ ! -f "/homer-semaphore/.bootstrapped" ]]; then exit 1; else exit 0; fi']
+        volumeMounts:
+        - mountPath: /homer-semaphore/
+          name: homer-data-semaphore
       containers:
       - name: homer-cron
         envFrom:
@@ -91,6 +100,13 @@ spec:
       labels:
         service: kamailio
     spec:
+      initContainers:
+      - name: init-kamailio
+        image: centos:centos7
+        command: ['/bin/bash', '-c', 'if [[ ! -f "/homer-semaphore/.bootstrapped" ]]; then exit 1; else exit 0; fi']
+        volumeMounts:
+        - mountPath: /homer-semaphore/
+          name: homer-data-semaphore
       containers:
       - name: homer-kamailio
         envFrom:
@@ -157,23 +173,6 @@ kind: Deployment
 metadata:
   creationTimestamp: null
   name: webapp
-  annotations:
-    # ---------------------------------------------------------------
-    # Thought this could work-around bad perms in dashboard volume.
-    # ---------------------------------------------------------------
-    # pod.alpha.kubernetes.io/init-containers: | 
-    #   [{
-    #       "name": "webapp-init",
-    #       "image": "busybox",
-    #       "imagePullPolicy": "IfNotPresent",
-    #       "command": ["sh", "-c", "chown -R 33:33 /var/www/html/store/dashboard/"],
-    #       "volumeMounts": [
-    #           {
-    #             "name": "homer-data-dashboard",
-    #             "mountPath": "/var/www/html/store/dashboard/"
-    #           }
-    #       ]
-    #   }]
 spec:
   replicas: 1
   strategy:
@@ -184,6 +183,13 @@ spec:
       labels:
         service: webapp
     spec:
+      initContainers:
+      - name: init-webapp
+        image: centos:centos7
+        command: ['/bin/bash', '-c', 'if [[ ! -f "/homer-semaphore/.bootstrapped" ]]; then exit 1; else exit 0; fi']
+        volumeMounts:
+        - mountPath: /homer-semaphore/
+          name: homer-data-semaphore
       containers:
       - name: homer-webapp
         envFrom:
@@ -250,8 +256,7 @@ status: {}
 #               persistentVolumeClaim:
 #                 claimName: homer-data-semaphore
 
----
-apiVersion: v1
+---apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   creationTimestamp: null
@@ -259,7 +264,7 @@ metadata:
   # This storage class is a work around for now...
   # see: https://github.com/kubernetes/kubernetes/issues/43929
 spec:
-  storageClassName: storage
+  storageClassName: gluster
   accessModes:
     - ReadWriteOnce
   resources:
@@ -273,7 +278,7 @@ metadata:
   creationTimestamp: null
   name: homer-data-mysql
 spec:
-  storageClassName: storage
+  storageClassName: gluster
   accessModes:
     - ReadWriteOnce
   resources:
@@ -287,15 +292,14 @@ metadata:
   creationTimestamp: null
   name: homer-data-semaphore
 spec:
-  storageClassName: storage
+  storageClassName: gluster
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
       storage: 5Mi
 status: {}
----
-apiVersion: v1
+---apiVersion: v1
 kind: Service
 metadata:
   creationTimestamp: null
